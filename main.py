@@ -10,7 +10,7 @@ def main():
             self.version = version
             self.params = {'access_token': self.token, 'v': self.version}
 
-        def get_photo(self):
+        def get_photo(self, user_id):
             url = 'https://api.vk.com/method/photos.get'
             params = {'owner_id': user_id,
                       'album_id': 'profile',
@@ -22,8 +22,8 @@ def main():
             res = requests.get(url, params={**self.params, **params}).json()
             return res['response']
 
-        def download_photo(self):
-            data = self.get_photo()
+        def download_photo(self, user_id):
+            data = self.get_photo(user_id)
             photo_items = data['items']
             if len(photo_items) == 0:
                 return 'У пользователя нет доступных фото.'
@@ -70,13 +70,42 @@ def main():
             print(f'Создан файл photo_info.json с информацией о сохраненных фото')
 
 
+    class YA_disk:
+        def __init__(self, token: str):
+            self.token = token
+
+        def authorization(self):
+            return {
+                'Content-Type': 'application/json',
+                'Authorization': f'OAuth {self.token}'
+                }
+
+        def create_folder(self, folder_name):
+            url = f'https://cloud-api.yandex.net/v1/disk/resources/'
+            params = {'path': f'{folder_name}',
+                      'overwrite': 'false'}
+            response = requests.put(url=url, headers=self.authorization(), params=params)
+
+            # Обработка ответов
+            if response.status_code == 409:
+                print('Супер, такая папка уже есть на вашем Яндекс Диске, сохраним фото в неё.')
+            elif response.status_code == 201:
+                print(f'Папка {folder_name} создана на вашем Яндекс Диске.')
+            else: print(f'Что-то пошло не так. Код ошибки: {response.status_code}')
+
+
     # Объявление токена и запрос данных у пользователя
     with open('vk_token.txt', 'r') as file_object:
         vk_token = file_object.read().strip()
 
     user_id = str(input('Введите id пользователя VK: '))
     downloader = VK(vk_token)
-    downloader.download_photo()
+    downloader.download_photo(user_id)
+
+    ya_token = str(input('Введите токен Яндекс Диска: '))
+    uploader = YA_disk(ya_token)
+    folder_name = str(input('Введите имя папки на Яндекс Диске, в которую будем сохранять фото: '))
+    uploader.create_folder(folder_name)
 
 
 
