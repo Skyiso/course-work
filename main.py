@@ -96,7 +96,6 @@ def main():
         def upload_photo(self, folder_name, file_path):
             url = f'https://cloud-api.yandex.net/v1/disk/resources/upload'
             photo_list = os.listdir(dir_photo)
-            print(photo_list)
             i = 0
             for photo in photo_list:
                 params = {'path': f'{folder_name}/{photo}',
@@ -109,7 +108,6 @@ def main():
                 # Загрузка файла
                 with open(f'{file_path}/{photo}', 'rb') as file:
                     uploader = requests.post(url_for_upload, files={"file": file})
-                print(uploader.status_code)
 
                 # Обработка ошибок
                 if uploader.status_code == 201:
