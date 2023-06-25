@@ -1,6 +1,6 @@
 import requests
 import os
-from pprint import pprint
+import json
 from datetime import datetime
 
 def main():
@@ -24,7 +24,6 @@ def main():
 
         def download_photo(self):
             data = self.get_photo()
-            pprint(data)
             photo_items = data['items']
             if len(photo_items) == 0:
                 return 'У пользователя нет доступных фото.'
@@ -46,20 +45,30 @@ def main():
                     if size['height'] >= max_size:
                         max_size = size['height']
                         size_type = size['type']
+                        photo_url = size['url']
 
                 likes_photo = item['likes']['count']
                 name_photo = f'{likes_photo}.jpg'
-                print(name_photo)
-
                 date_photo = datetime.fromtimestamp(item['date']).strftime("%d-%m-%Y")
-                print(date_photo)
 
                 for dic in photo_list_to_json:
                     if name_photo == dic['file_name']:
                         name_photo = f'{likes_photo}_{date_photo}.jpg'
 
                 photo_list_to_json.append({'file_name': name_photo, 'size': size_type})
-            pprint(photo_list_to_json)
+
+                # Сохранение фотографий
+                with open('images_vk/%s' % name_photo, 'wb') as file:
+                    img = requests.get(photo_url)
+                    file.write(img.content)
+                i += 1
+                print(f'Загружена {i}-я фотография ({name_photo}) в папку images_vk')
+
+            # Создание файла о скачанных фотографиях
+            with open("photo_info.json", "w") as file:
+                json.dump(photo_list_to_json, file, indent=2)
+            print(f'Создан файл photo_info.json с информацией о сохраненных фото')
+
 
     # Объявление токена и запрос данных у пользователя
     with open('vk_token.txt', 'r') as file_object:
