@@ -29,11 +29,11 @@ def main():
                 return 'У пользователя нет доступных фото.'
 
             # Создание папки для сохранения фото из VK
-            if os.path.exists('images_vk'):
-                for f in os.listdir('images_vk'):
-                    os.remove(os.path.join('images_vk', f))
+            if os.path.exists(dir_photo):
+                for f in os.listdir(dir_photo):
+                    os.remove(os.path.join(dir_photo, f))
             else:
-                os.mkdir('images_vk')
+                os.mkdir(dir_photo)
 
             # Формирование информации по всем фото
             photo_list_to_json = []
@@ -58,14 +58,14 @@ def main():
                 photo_list_to_json.append({'file_name': name_photo, 'size': size_type})
 
                 # Сохранение фотографий
-                with open('images_vk/%s' % name_photo, 'wb') as file:
+                with open(f'{dir_photo}/%s' % name_photo, 'wb') as file:
                     img = requests.get(photo_url)
                     file.write(img.content)
                 i += 1
-                print(f'Загружена {i}-я фотография ({name_photo}) в папку images_vk')
+                print(f'Загружена {i}-я фотография ({name_photo}) в папку {dir_photo}')
 
             # Создание файла о скачанных фотографиях
-            with open("photo_info.json", "w") as file:
+            with open('photo_info.json', 'w') as file:
                 json.dump(photo_list_to_json, file, indent=2)
             print(f'Создан файл photo_info.json с информацией о сохраненных фото')
 
@@ -93,11 +93,36 @@ def main():
                 print(f'Папка {folder_name} создана на вашем Яндекс Диске.')
             else: print(f'Что-то пошло не так. Код ошибки: {response.status_code}')
 
+        def upload_photo(self, folder_name, file_path):
+            url = f'https://cloud-api.yandex.net/v1/disk/resources/upload'
+            photo_list = os.listdir(dir_photo)
+            print(photo_list)
+            i = 0
+            for photo in photo_list:
+                params = {'path': f'{folder_name}/{photo}',
+                          'overwrite': 'true'}
+
+                # Получение ссылки на загрузку
+                response = requests.get(url, headers=self.authorization(), params=params)
+                url_for_upload = response.json().get('href', '')
+
+                # Загрузка файла
+                with open(f'{file_path}/{photo}', 'rb') as file:
+                    uploader = requests.post(url_for_upload, files={"file": file})
+                print(uploader.status_code)
+
+                # Обработка ошибок
+                if uploader.status_code == 201:
+                    i += 1
+                    print(f'Загружена {i}-я фотография ({photo}) в папку {folder_name} на Яндекс Диске')
+                else: print(f'Ошибка загрузки фото ({photo}). Код ошибки: {uploader.status_code}')
+
 
     # Объявление токена и запрос данных у пользователя
     with open('vk_token.txt', 'r') as file_object:
         vk_token = file_object.read().strip()
 
+    dir_photo = 'images_vk'
     user_id = str(input('Введите id пользователя VK: '))
     downloader = VK(vk_token)
     downloader.download_photo(user_id)
@@ -106,6 +131,8 @@ def main():
     uploader = YA_disk(ya_token)
     folder_name = str(input('Введите имя папки на Яндекс Диске, в которую будем сохранять фото: '))
     uploader.create_folder(folder_name)
+    file_path = f'{os.getcwd()}/{dir_photo}'
+    uploader.upload_photo(folder_name, file_path)
 
 
 
