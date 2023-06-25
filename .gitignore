@@ -1,4 +1,4 @@
-*.txt
+*_token.txt
 *.json
 
 images_vk/
